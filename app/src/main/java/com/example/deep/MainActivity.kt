@@ -1,6 +1,7 @@
 package com.example.deep
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -17,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +48,6 @@ class MainActivity : ComponentActivity() {
 
         var resultLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { result: Uri? ->
             viewmodel.loadSongsFromFolder(result,context)
-
         //    Log.e("jjj",)
         }
         setContent {
@@ -72,7 +73,14 @@ class MainActivity : ComponentActivity() {
                 Column(){
                     val songlist by viewmodel.songs.collectAsState()
 
-                    SongList(songlist)
+                    SongList(songlist) { clickedIndex ->
+                        SongRepository.currentIndex.value = (clickedIndex)
+                        Intent(this@MainActivity, SongService::class.java).also { intent ->
+                            intent.action = "PLAY"
+                            startService(intent)
+
+                        }
+                    }
                 }
             }
         }
@@ -80,11 +88,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SongItem(song: Song) {
+fun SongItem(song: Song, index: Int, onSongClick: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(8.dp).clickable{
+                onSongClick(index)
+            }
     ) {
         Image(
             painter = painterResource(id = song.imageResId),
@@ -105,10 +115,10 @@ fun SongItem(song: Song) {
 }
 
 @Composable
-fun SongList(songs: List<Song>) {
+fun SongList(songs: List<Song>,onSongClick: (Int) -> Unit) {
     LazyColumn {
-        items(songs) { song ->
-            SongItem(song)
+        itemsIndexed(songs) { index,song   ->
+            SongItem(song,index,onSongClick)
         }
     }
 }
