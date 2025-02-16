@@ -76,6 +76,8 @@ class MainActivity : ComponentActivity() {
                     SongList(songlist) { clickedIndex ->
                         SongRepository.currentIndex.value = (clickedIndex)
                         Intent(this@MainActivity, SongService::class.java).also { intent ->
+                            Log.e("jjj","uiisis")
+
                             intent.action = "PLAY"
                             startService(intent)
 
