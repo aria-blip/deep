@@ -16,8 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 class SongViewModel : ViewModel() {
     private var mediaPlayer: MediaPlayer? = null
     val songs = SongRepository.songs
-    val currentIndex = SongRepository.currentIndex
-
+    val depth =SongRepository.depths
     fun loadSongsFromFolder(uri: Uri?, context: Context) {
 
         var newlistr= mutableListOf<Song>()
@@ -30,7 +29,7 @@ class SongViewModel : ViewModel() {
         }
         if (urist != null) {
             for(u in urist){
-                var newsong : Song=Song(u.name.toString(),u.uri )
+                var newsong : Song=Song(u.name.toString(),u.uri.toString() )
                 newlistr.add(newsong)
 
             }
@@ -41,6 +40,6 @@ class SongViewModel : ViewModel() {
 
     }
     fun addrandom(){
-        songs.value+= Song("dsa","as".toUri())
+        songs.value+= Song("dsa","as")
     }
 }
