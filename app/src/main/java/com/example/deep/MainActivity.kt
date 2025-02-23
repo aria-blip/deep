@@ -1,6 +1,7 @@
 package com.example.deep
 
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -27,9 +28,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -80,8 +85,12 @@ class MainActivity : ComponentActivity() {
         //    Log.e("jjj",)
         }
       //  downloadYouTubeAudio("https://youtu.be/07RlRpNNGmQ?si=cF6PabNk09DINa12",this@MainActivity)
-        val youtubeUrl = "https://www.youtube.com/watch?v=4g0CXOMNEJs"
-        downloadVideoAsMp3(youtubeUrl)
+        val message = intent.getStringExtra("TITLE") ?: "none"
+        val fullpath = intent.getStringExtra("PATH") ?: "none"
+
+        if(message != "none"){
+            addSongFromIntent(message,fullpath)
+        }
         setContent {
             val navController = rememberNavController()
 
@@ -105,15 +114,12 @@ class MainActivity : ComponentActivity() {
             }
 
         }
-    fun downloadVideoAsMp3(url:String){
-        val intent = Intent("com.example.appB.ACTION_RUN_FUNCTION")
-        intent.setPackage("com.junkfood.seal.debug") // Ensures it's sent to App B only
-        intent.putExtra("EXTRA_MESSAGE", url) // Send the string
-        Log.e("ttz","tdtjdjr")
-        this.sendBroadcast(intent)
-        Log.e("ttz","tdtjdjr")
+    fun addSongFromIntent(title:String,path_ofsong:String){
+        viewmodel.songs.value+=Song(title,path_ofsong)
+
 
     }
+
 
     }
 
@@ -128,13 +134,34 @@ data class DepthNav(
     val index: Int
 )
 
+fun downloadVideoAsMp3(url:String,con:Context){
 
+    val intent = Intent().apply {
+        component = ComponentName("com.junkfood.seal.debug", "com.junkfood.seal.DownloadAcitivity")
+        putExtra("EXTRA_MESSAGE", url)
+    }
+    con.startActivity(intent)
+
+
+}
 @Composable
 fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewModel,packageName:String,    context: Context,navController: NavController) {
 
     Column(modifier = Modifier
         .fillMaxSize()
         .background(Color.LightGray), verticalArrangement = Arrangement.SpaceEvenly) {
+        Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween) {
+            var text by remember { mutableStateOf("") }
+
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Enter text") }
+            )
+            Text(modifier = Modifier.size(20.dp).clickable {
+                downloadVideoAsMp3(text,context)
+            }, text = "CLICK TO INSTALL", fontSize = 28.sp)
+        }
         Row(modifier=Modifier
             .fillMaxWidth()
             .wrapContentHeight()){
