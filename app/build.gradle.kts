@@ -16,7 +16,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
+        ndk {
+            abiFilters += listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -44,7 +46,14 @@ android {
 dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.preference.ktx)
+    implementation(libs.androidx.media3.exoplayer)
     val nav_version = "2.8.7"
+    val picassoVersion = "2.71828"
+
+
 
     // Jetpack Compose integration
     implementation("androidx.navigation:navigation-compose:$nav_version")
@@ -77,4 +86,13 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.mmkv)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+
+    implementation(libs.okhttp)
+
+    implementation(libs.bundles.youtubedlAndroid)
+
+    implementation("com.squareup.picasso:picasso:$picassoVersion")
 }

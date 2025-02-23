@@ -1,20 +1,20 @@
 package com.example.deep
 
-import android.app.Application
+import android.app.PendingIntent
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class SongViewModel : ViewModel() {
     private var mediaPlayer: MediaPlayer? = null
+
     val songs = SongRepository.songs
     val depth =SongRepository.depths
     fun loadSongsFromFolder(uri: Uri?, context: Context) {
@@ -30,6 +30,8 @@ class SongViewModel : ViewModel() {
         if (urist != null) {
             for(u in urist){
                 var newsong : Song=Song(u.name.toString(),u.uri.toString() )
+                newsong.imageResId=R.drawable.h
+
                 newlistr.add(newsong)
 
             }
@@ -40,6 +42,12 @@ class SongViewModel : ViewModel() {
 
     }
     fun addrandom(){
-        songs.value+= Song("dsa","as")
+        songs.value+= Song("dsa","as",R.drawable.idn)
+
     }
+
+
 }
+
+
+
