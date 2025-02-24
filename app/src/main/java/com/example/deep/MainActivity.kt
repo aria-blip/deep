@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.util.SparseArray
@@ -75,22 +76,46 @@ import java.net.URL
 class MainActivity : ComponentActivity() {
     val viewmodel by viewModels<SongViewModel>()
 
+    private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val context =this
-
+        viewmodel.songs.value=SongRepository.songs.value
         var resultLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { result: Uri? ->
             viewmodel.loadSongsFromFolder(result,context)
-        //    Log.e("jjj",)
-        }
-      //  downloadYouTubeAudio("https://youtu.be/07RlRpNNGmQ?si=cF6PabNk09DINa12",this@MainActivity)
-        val message = intent.getStringExtra("TITLE") ?: "none"
-        val fullpath = intent.getStringExtra("PATH") ?: "none"
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
-        if(message != "none"){
-            addSongFromIntent(message,fullpath)
+            //    Log.e("jjj",)
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                startActivity(intent)
+            }
+        }
+
+      //  downloadYouTubeAudio("https://youtu.be/07RlRpNNGmQ?si=cF6PabNk09DINa12",this@MainActivity)
+//        var message = intent.getStringExtra("TITLE") ?: "none"
+//        val fullpath = intent.getStringExtra("PATH") ?: "none"
+//        Log.e("1",message)
+//
+//        if(message != "none"){
+//            if(viewmodel.songs.value.any { it.title == message } == false) {
+//                viewmodel.songs.value = viewmodel.songs.value + Song(message, fullpath)
+//                Log.e("1", "jjjs")
+//            }
+//        }
         setContent {
             val navController = rememberNavController()
 
@@ -135,12 +160,15 @@ data class DepthNav(
 )
 
 fun downloadVideoAsMp3(url:String,con:Context){
-
+    Log.e("ttt","CLICKED")
     val intent = Intent().apply {
         component = ComponentName("com.junkfood.seal.debug", "com.junkfood.seal.DownloadAcitivity")
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         putExtra("EXTRA_MESSAGE", url)
     }
+
     con.startActivity(intent)
+    Log.e("ttt","sendd to SLAEDE")
 
 
 }
@@ -150,7 +178,7 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
     Column(modifier = Modifier
         .fillMaxSize()
         .background(Color.LightGray), verticalArrangement = Arrangement.SpaceEvenly) {
-        Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             var text by remember { mutableStateOf("") }
 
             TextField(
@@ -328,6 +356,7 @@ fun DepthList(depths: List<Depth>,onDepthClick: (Int) -> Unit) {
 
 @Composable
 fun SongList(songs: List<Song>,onSongClick: (Int) -> Unit) {
+
     LazyColumn {
         itemsIndexed(songs) { index,song   ->
             SongItem(song,index,onSongClick)

@@ -67,6 +67,7 @@ class SongService : Service() {
         if (song != null) {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer.create(this, Uri.parse(song.uriPath))
+            Log.e("s",song.uriPath)
             mediaPlayer?.start()
             showNotification()
         }

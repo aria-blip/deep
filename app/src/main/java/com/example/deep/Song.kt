@@ -8,5 +8,5 @@ import kotlinx.serialization.Serializable
 data class Song(
     val title: String,
     val uriPath: String,
-    var imageResId: Int?=null
+    var imageResId: Int?=R.drawable.h
     )
