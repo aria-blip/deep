@@ -5,11 +5,14 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import androidx.collection.emptyObjectList
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 
 class SongViewModel : ViewModel() {
@@ -17,6 +20,7 @@ class SongViewModel : ViewModel() {
 
     val songs = SongRepository.songs
     val depth =SongRepository.depths
+    var neuestdepthimage :Uri ="".toUri()
     fun loadSongsFromFolder(uri: Uri?, context: Context) {
 
         var newlistr= mutableListOf<Song>()
@@ -41,6 +45,11 @@ class SongViewModel : ViewModel() {
 
 
     }
+    fun addNewDepth(titel:String,imageUri:Uri){
+        depth.value= depth.value.filter{it.depth_id != -1} + Depth("ADD DEPTH", song_catalog =  emptyList(), depth_id = -1 , "sss".toUri()   ) + Depth(titel, song_catalog = emptyList(), depth_id = (depth.value[depth.value.lastIndex].depth_id+1),imageUri)
+
+    }
+
     fun addrandom(){
         songs.value+= Song("dsa","as",R.drawable.idn)
 

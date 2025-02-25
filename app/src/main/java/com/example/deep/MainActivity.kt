@@ -18,16 +18,22 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -48,6 +54,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -76,27 +85,71 @@ import java.net.URL
 class MainActivity : ComponentActivity() {
     val viewmodel by viewModels<SongViewModel>()
 
-    private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let {
-            contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
+
+    fun getFolderDocumentFile(context: Context, resultLauncher: ActivityResultLauncher<Uri?>): DocumentFile? {
+        val sharedPreferences = context.getSharedPreferences("storage_prefs", Context.MODE_PRIVATE)
+        val savedUri = sharedPreferences.getString("folder_uri", null)
+
+        return if (savedUri != null) {
+            DocumentFile.fromTreeUri(context, Uri.parse(savedUri))
+        } else {
+            // Ask the user to select a folder
+            resultLauncher.launch(null)
+            null
         }
     }
+    fun getfilesuriinfile(doc:DocumentFile){
+        doc.listFiles()?.forEach { file ->
+            Log.e("File Found", file.uri.toString())
+            Log.e("File Found", file.name.toString())
 
+            if (file.name == "If I lose it all... [4K] [ID-wtN6iGIo].mp3") {
+                Log.e("File Found", file.uri.toString())
 
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val context =this
+        var savedUri:Uri="".toUri()
         viewmodel.songs.value=SongRepository.songs.value
         var resultLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { result: Uri? ->
             viewmodel.loadSongsFromFolder(result,context)
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+            result?.let {
+                contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+                )
+
+            }
 
             //    Log.e("jjj",)
         }
+        var resultLauncher2 = registerForActivityResult(ActivityResultContracts.OpenDocument()) { result: Uri? ->
+
+            result?.let {
+                contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+                )
+                val sharedPreferences = context.getSharedPreferences("storage_prefs", Context.MODE_PRIVATE)
+                sharedPreferences.edit().putString("folder_uri", it.toString()).apply()
+
+                // Update savedUri
+                viewmodel.neuestdepthimage=it
+
+            }
+
+            //    Log.e("jjj",)
+        }
+
+
+      //  getFolderDocumentFile(this, resultLauncher2 )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
@@ -104,6 +157,9 @@ class MainActivity : ComponentActivity() {
                 startActivity(intent)
             }
         }
+
+
+
 
       //  downloadYouTubeAudio("https://youtu.be/07RlRpNNGmQ?si=cF6PabNk09DINa12",this@MainActivity)
 //        var message = intent.getStringExtra("TITLE") ?: "none"
@@ -134,7 +190,9 @@ class MainActivity : ComponentActivity() {
 
                     SwitchDepth(depths,args.index,this@MainActivity)
                 }
-
+                composable<DepthForm> {
+                    DepthForm(viewmodel, isvisivible = true, resultLauncher2)
+                }
                 }
             }
 
@@ -149,7 +207,8 @@ class MainActivity : ComponentActivity() {
     }
 
 
-
+@Serializable
+object DepthForm
 
 @Serializable
 object Home
@@ -172,6 +231,8 @@ fun downloadVideoAsMp3(url:String,con:Context){
 
 
 }
+
+
 @Composable
 fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewModel,packageName:String,    context: Context,navController: NavController) {
 
@@ -230,7 +291,11 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
 
             DepthList(depthlist) { depthIndex ->
                 val thedepth:Depth=depthlist[depthIndex]
-                navController.navigate(DepthNav(depthIndex))
+                if(thedepth.depth_id !=-1){
+                navController.navigate(DepthNav(depthIndex))}
+                else{
+                    navController.navigate(DepthForm)}
+                }
             }
       //      if(thenum.value!=-1){
         //        SwitchDepth(depthlist[thenum.value],thenum.value)
@@ -251,18 +316,66 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
                 }
             }
         }
+
+}
+@Composable
+fun DepthForm(viewmodel: SongViewModel,isvisivible:Boolean=false, resultLauncher:  ActivityResultLauncher<Array<String>>){
+    var count by remember { mutableStateOf(isvisivible) }
+    var imageofDepth by remember { mutableStateOf(viewmodel.neuestdepthimage) }
+
+    if(count==true){
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)) ,  contentAlignment = Alignment.Center   ){
+            Box(modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight(0.9f).padding(30.dp)){
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally , verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Enter Your Text", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+                        var inputText by remember { mutableStateOf("") }
+                        TextField(
+                            value = inputText,
+                            onValueChange = { inputText = it },
+                            label = { Text("ENTER DEPTH NAME ___ ") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text( textAlign = TextAlign.Center,text="Add Image" , modifier = Modifier.padding(30.dp).clickable {
+                                resultLauncher.launch(arrayOf("image/*"))
+                        })
+
+                        Text( textAlign = TextAlign.Center,text="FINISH" , modifier = Modifier.padding(30.dp).clickable {
+                                viewmodel.addNewDepth(inputText,imageofDepth)
+                            count=false
+                        })
+                    }
+                }
+
+            }
+        }
+
     }
+
 }
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongItem(song: Song, index: Int, onSongClick: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable {
-                onSongClick(index)
-            }
+            .combinedClickable(onLongClick = {
+                Log.e("j","LONG CLICK ")
+
+            } , onClick = {onSongClick(index)})
     ) {
         Image(
             painter = painterResource(id = song.imageResId!!),
