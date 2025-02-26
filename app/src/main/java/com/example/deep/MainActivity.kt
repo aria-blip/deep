@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
                 sharedPreferences.edit().putString("folder_uri", it.toString()).apply()
 
                 // Update savedUri
-                viewmodel.neuestdepthimage=it
+                viewmodel.neuestdepthimage.value=it
 
             }
 
@@ -172,6 +172,11 @@ class MainActivity : ComponentActivity() {
 //                Log.e("1", "jjjs")
 //            }
 //        }
+        var longclickfun : (Int) -> Unit = { songNum:Int  ->
+            viewmodel.showoverlay.value=true
+            viewmodel.depthforsongindex.value=songNum
+            Log.e("jsa","keekek")
+        }
         setContent {
             val navController = rememberNavController()
 
@@ -179,7 +184,7 @@ class MainActivity : ComponentActivity() {
                 composable<Home> {
                     SongRepository.iscatalog= MutableStateFlow(false)
 
-                    HomeScreen(resultLauncher,viewmodel,packageName,this@MainActivity,navController)
+                    HomeScreen(resultLauncher,viewmodel,packageName,this@MainActivity,navController, onLongSongClick = longclickfun)
                 }
                 composable<DepthNav> {
                     val args=it.toRoute<DepthNav>()
@@ -188,10 +193,10 @@ class MainActivity : ComponentActivity() {
                     SongRepository.setServicetoCatlaog(depths.song_catalog)
 
 
-                    SwitchDepth(depths,args.index,this@MainActivity)
+                    SwitchDepth(depths,args.index,this@MainActivity, onLongSongClickk = longclickfun)
                 }
                 composable<DepthForm> {
-                    DepthForm(viewmodel, isvisivible = true, resultLauncher2)
+                    DepthForm(viewmodel, isvisivible = true, resultLauncher2, navController)
                 }
                 }
             }
@@ -234,22 +239,25 @@ fun downloadVideoAsMp3(url:String,con:Context){
 
 
 @Composable
-fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewModel,packageName:String,    context: Context,navController: NavController) {
+fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewModel,packageName:String,    context: Context,navController: NavController,onLongSongClick: (Int) -> Unit) {
 
     Column(modifier = Modifier
         .fillMaxSize()
         .background(Color.LightGray), verticalArrangement = Arrangement.SpaceEvenly) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             var text by remember { mutableStateOf("") }
+            ShowOverlayDepth(viewmodel)
 
             TextField(
                 value = text,
                 onValueChange = { text = it },
                 label = { Text("Enter text") }
             )
-            Text(modifier = Modifier.size(20.dp).clickable {
-                downloadVideoAsMp3(text,context)
-            }, text = "CLICK TO INSTALL", fontSize = 28.sp)
+            Text(modifier = Modifier
+                .size(20.dp)
+                .clickable {
+                    downloadVideoAsMp3(text, context)
+                }, text = "CLICK TO INSTALL", fontSize = 28.sp)
         }
         Row(modifier=Modifier
             .fillMaxWidth()
@@ -274,13 +282,36 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
                     .background(color = Color.Blue)
                     .height(200.dp)
                     .clickable {
-                        val imageUri = Uri.parse("android.resource://${packageName}/${R.drawable.pian}")
-                        viewmodel.depth.value += Depth("Nocturne",viewmodel.songs.value.filterIndexed { index, value -> index % 2 == 0 },1, imageUri)
-                        viewmodel.depth.value += Depth("Bes",viewmodel.songs.value.filterIndexed { index, value -> index % 3 == 0 } ,2, imageUri)
-                        viewmodel.depth.value += Depth("Sunnya",viewmodel.songs.value.filterIndexed { index, value -> index % 4 == 0 } ,2, imageUri)
-                        viewmodel.depth.value += Depth("GOT",viewmodel.songs.value.filterIndexed { index, value -> index % 6 == 0 } ,2, imageUri)
+                        val imageUri =
+                            Uri.parse("android.resource://${packageName}/${R.drawable.pian}")
+                        viewmodel.depth.value += Depth(
+                            "Nocturne",
+                            viewmodel.songs.value.filterIndexed { index, value -> index % 2 == 0 },
+                            1,
+                            imageUri
+                        )
+                        viewmodel.depth.value += Depth(
+                            "Bes",
+                            viewmodel.songs.value.filterIndexed { index, value -> index % 3 == 0 },
+                            2,
+                            imageUri)
+                        viewmodel.depth.value += Depth(
+                            "Sunnya",
+                            viewmodel.songs.value.filterIndexed { index, value -> index % 4 == 0 },
+                            2,
+                            imageUri)
+                        viewmodel.depth.value += Depth(
+                            "GOT",
+                            viewmodel.songs.value.filterIndexed { index, value -> index % 6 == 0 },
+                            2,
+                            imageUri)
                         viewmodel.depth.value = viewmodel.depth.value.toMutableList().apply {
-                            Depth("GOT",viewmodel.songs.value.filterIndexed { index, value -> index % 6 == 0 } ,2, imageUri)                        }
+                            Depth(
+                                "GOT",
+                                viewmodel.songs.value.filterIndexed { index, value -> index % 6 == 0 },
+                                2,
+                                imageUri)
+                        }
                     })
 
         }
@@ -300,11 +331,10 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
       //      if(thenum.value!=-1){
         //        SwitchDepth(depthlist[thenum.value],thenum.value)
           //  }
-        }
         Column(){
             val songlist by viewmodel.songs.collectAsState()
 
-            SongList(songlist) { clickedIndex ->
+            SongList(songlist, longsongclick = onLongSongClick) { clickedIndex ->
                 SongRepository.currentIndex.value = clickedIndex
                 Intent(context, SongService::class.java).also { intent ->
                     Log.e("jjj","uiisis")
@@ -316,16 +346,23 @@ fun HomeScreen(resultLauncher: ActivityResultLauncher<Uri?>,viewmodel:SongViewMo
                 }
             }
         }
+        }
+
 
 }
 @Composable
-fun DepthForm(viewmodel: SongViewModel,isvisivible:Boolean=false, resultLauncher:  ActivityResultLauncher<Array<String>>){
+fun DepthForm(viewmodel: SongViewModel,isvisivible:Boolean=false, resultLauncher:  ActivityResultLauncher<Array<String>>, navigation:NavController){
     var count by remember { mutableStateOf(isvisivible) }
-    var imageofDepth by remember { mutableStateOf(viewmodel.neuestdepthimage) }
+    val imageofDepth by viewmodel.neuestdepthimage.collectAsState()
 
     if(count==true){
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)) ,  contentAlignment = Alignment.Center   ){
-            Box(modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight(0.9f).padding(30.dp)){
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) ,  contentAlignment = Alignment.Center   ){
+            Box(modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .fillMaxHeight(0.9f)
+                .padding(30.dp)){
                 Card(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
@@ -346,14 +383,20 @@ fun DepthForm(viewmodel: SongViewModel,isvisivible:Boolean=false, resultLauncher
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Text( textAlign = TextAlign.Center,text="Add Image" , modifier = Modifier.padding(30.dp).clickable {
+                        Text( textAlign = TextAlign.Center,text="Add Image" , modifier = Modifier
+                            .padding(30.dp)
+                            .clickable {
                                 resultLauncher.launch(arrayOf("image/*"))
-                        })
+                            })
 
-                        Text( textAlign = TextAlign.Center,text="FINISH" , modifier = Modifier.padding(30.dp).clickable {
-                                viewmodel.addNewDepth(inputText,imageofDepth)
-                            count=false
-                        })
+                        Text( textAlign = TextAlign.Center,text="FINISH" , modifier = Modifier
+                            .padding(30.dp)
+                            .clickable {
+                                viewmodel.addNewDepth(inputText, imageofDepth)
+                                count = false
+                                navigation.navigate(Home)
+
+                    })
                     }
                 }
 
@@ -364,18 +407,49 @@ fun DepthForm(viewmodel: SongViewModel,isvisivible:Boolean=false, resultLauncher
 
 }
 
+@Composable
+fun ShowOverlayDepth(viewmodel :SongViewModel) {
+    val showit by  viewmodel.showoverlay.collectAsState()
+    val songindex by  viewmodel.depthforsongindex.collectAsState()
+
+
+    Log.e("ksk",showit.toString())
+    if(showit){
+        Log.e("ksk",showit.toString())
+
+        Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black.copy(alpha = 0.34f)) ,  contentAlignment = Alignment.Center   ){
+        Box(modifier = Modifier.size(height = 200.dp, width = 300.dp).fillMaxWidth().background(Color.LightGray)){
+            Column(modifier = Modifier.matchParentSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(textAlign = TextAlign.Start, text = "CHOOSE DEPTH")
+
+                val depthlist by viewmodel.depth.collectAsState()
+
+                DepthList(depthlist.filter{it.depth_id!=-1}) { depthindex:Int ->
+                    viewmodel.depth.value[depthindex].song_catalog += viewmodel.songs.value[songindex]
+                    viewmodel.showoverlay.value=false
+                }
+            }
+
+            }
+        }
+
+
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SongItem(song: Song, index: Int, onSongClick: (Int) -> Unit) {
+fun SongItem(song: Song, index: Int,onLongSongClick :(Int) -> Unit, onSongClick: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .combinedClickable(onLongClick = {
-                Log.e("j","LONG CLICK ")
-
-            } , onClick = {onSongClick(index)})
+                onLongSongClick(index)
+            }, onClick = { onSongClick(index) })
     ) {
         Image(
             painter = painterResource(id = song.imageResId!!),
@@ -396,7 +470,8 @@ fun SongItem(song: Song, index: Int, onSongClick: (Int) -> Unit) {
 }
 
 @Composable
-fun SwitchDepth(depth: Depth,index: Int,context: Context) {
+fun SwitchDepth(depth: Depth,index: Int,context: Context,onLongSongClickk: (Int) -> Unit) {
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -411,7 +486,10 @@ fun SwitchDepth(depth: Depth,index: Int,context: Context) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            Row(modifier = Modifier.fillMaxWidth().height(70.dp).padding(10.dp) , horizontalArrangement = Arrangement.Center) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .height(70.dp)
+                .padding(10.dp) , horizontalArrangement = Arrangement.Center) {
                 Text(textAlign = TextAlign.Center,
                     text=depth.title
                     )
@@ -421,7 +499,7 @@ fun SwitchDepth(depth: Depth,index: Int,context: Context) {
 
 
 
-                SongList(depth.song_catalog) { clickedIndex ->
+                SongList(depth.song_catalog, longsongclick = onLongSongClickk) { clickedIndex ->
                     SongRepository.currentIndex.value = clickedIndex
                     Intent(context, SongService::class.java).also { intent ->
                         Log.e("jjj","uiisis")
@@ -440,7 +518,8 @@ fun SwitchDepth(depth: Depth,index: Int,context: Context) {
 @Composable
 fun DepthIteam(depth: Depth, index: Int, onDepthClick: (Int) -> Unit){
     Box(modifier = Modifier
-        .height(250.dp).width(80.dp)
+        .height(250.dp)
+        .width(80.dp)
         .clickable {
             onDepthClick(index)
         },
@@ -468,11 +547,11 @@ fun DepthList(depths: List<Depth>,onDepthClick: (Int) -> Unit) {
 }
 
 @Composable
-fun SongList(songs: List<Song>,onSongClick: (Int) -> Unit) {
+fun SongList(songs: List<Song>,longsongclick:(Int)-> Unit,onSongClick: (Int) -> Unit) {
 
     LazyColumn {
         itemsIndexed(songs) { index,song   ->
-            SongItem(song,index,onSongClick)
+            SongItem(song,index,longsongclick,onSongClick)
         }
     }
 }
