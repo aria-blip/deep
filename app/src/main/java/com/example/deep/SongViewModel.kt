@@ -17,14 +17,22 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 
 class SongViewModel : ViewModel() {
-    private var mediaPlayer: MediaPlayer? = null
 
     val songs = SongRepository.songs
     val depth =SongRepository.depths
     var neuestdepthimage  =  MutableStateFlow("".toUri())
+    var neuestdepthrealimage  =  MutableStateFlow("".toUri())
+
 
     var showoverlay= MutableStateFlow(false)
     var depthforsongindex =MutableStateFlow(0)
+
+    fun initizialseModel(con:Context){
+        var returned = SongRepository.returnData(con)
+        songs.value=returned.thesong
+        depth.value=returned.thedepth
+    }
+
 
     fun loadSongsFromFolder(uri: Uri?, context: Context) {
 
@@ -46,12 +54,13 @@ class SongViewModel : ViewModel() {
             }
         }
 
-        songs.value= newlistr
-
+        songs.value+= newlistr
+        SongRepository.saveData(context,songs.value,depth.value)
 
     }
-    fun addNewDepth(titel:String,imageUri:Uri){
-        depth.value= depth.value.filter{it.depth_id != -1} + Depth(titel, song_catalog = emptyList(), depth_id = (depth.value[depth.value.lastIndex].depth_id+1),imageUri) + Depth("ADD DEPTH", song_catalog =  emptyList(), depth_id = -1 , "sss".toUri()   )
+    fun addNewDepth(titel:String,imageUri:Uri,realimageUri: Uri, thecon:Context){
+        depth.value= depth.value.filter{ it.depth_id != -1 } + Depth(titel, song_catalog = emptyList(), depth_id = (depth.value[depth.value.lastIndex].depth_id+1),imageUri.toString(),realimageUri.toString()) + Depth("ADD DEPTH", song_catalog =  emptyList(), depth_id = -1 , "sss".toUri().toString()  ,"" )
+        SongRepository.saveData(thecon,songs.value,depth.value)
 
     }
 

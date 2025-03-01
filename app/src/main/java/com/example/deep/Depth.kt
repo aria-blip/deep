@@ -6,6 +6,7 @@ data class Depth(
     var title:String,
     var song_catalog:List<Song>,
     var depth_id:Int,
-    var image:Uri
+    var image:String,
+    var realimage:String
 
 )
